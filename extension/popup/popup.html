@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MailTrackr</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup">
+    <!-- Header -->
+    <header class="popup__header">
+      <div class="popup__logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+      <h1 class="popup__title">MailTrackr</h1>
+    </header>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card__value" id="stat-total">—</div>
+        <div class="stat-card__label">Tracked</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="stat-opened">—</div>
+        <div class="stat-card__label">Opened</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value" id="stat-opens">—</div>
+        <div class="stat-card__label">Total Opens</div>
+      </div>
+    </div>
+
+    <!-- Recent emails -->
+    <div class="section">
+      <div class="section__header">Recent Emails</div>
+      <div id="email-list" class="email-list">
+        <div class="empty-state">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9aa0a6" stroke-width="1.5">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          <p>No tracked emails yet.<br/>Compose an email in Gmail to start.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="popup__footer">
+      <button class="btn-dashboard" id="open-dashboard-btn">
+        View Full Analytics
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </button>
+      <p class="popup__disclaimer">Tracking is OFF by default. Always obtain consent.</p>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

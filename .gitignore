@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+.env.local
+.next/
+*.js.map
+*.DS_Store

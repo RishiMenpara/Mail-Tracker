@@ -1,0 +1,247 @@
+/* MailTrackr content-script styles — scoped with mt- prefix to avoid Gmail conflicts */
+
+/* ── Toggle button ──────────────────────────────────────────────────── */
+.mt-toggle-container {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 4px;
+}
+
+.mt-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1.5px solid transparent;
+  font-size: 12px;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.1s;
+  white-space: nowrap;
+  outline: none;
+  user-select: none;
+}
+
+.mt-toggle:hover {
+  transform: scale(1.03);
+}
+
+.mt-toggle:active {
+  transform: scale(0.97);
+}
+
+.mt-toggle--off {
+  background: #f1f3f4;
+  border-color: #dadce0;
+  color: #5f6368;
+}
+
+.mt-toggle--off:hover {
+  background: #e8eaed;
+  border-color: #c0c5cc;
+}
+
+.mt-toggle--on {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: #ffffff;
+}
+
+.mt-toggle--on:hover {
+  background: #1765cc;
+}
+
+.mt-toggle__icon {
+  display: flex;
+  align-items: center;
+}
+
+.mt-toggle__label {
+  line-height: 1;
+}
+
+/* ── Backdrop & Dialog ──────────────────────────────────────────────── */
+.mt-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.mt-backdrop--visible {
+  opacity: 1;
+}
+
+.mt-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  transform: translateY(12px) scale(0.97);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+}
+
+.mt-backdrop--visible .mt-dialog {
+  transform: translateY(0) scale(1);
+}
+
+.mt-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.mt-dialog__icon {
+  width: 36px;
+  height: 36px;
+  background: #e8f0fe;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1a73e8;
+  flex-shrink: 0;
+}
+
+.mt-dialog__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #202124;
+}
+
+.mt-dialog__body {
+  padding: 16px 24px;
+}
+
+.mt-dialog__disclaimer {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #5f6368;
+  line-height: 1.55;
+}
+
+.mt-dialog__details {
+  background: #f8f9fa;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mt-dialog__detail-row {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.mt-dialog__detail-label {
+  color: #80868b;
+  font-weight: 500;
+  min-width: 36px;
+}
+
+.mt-dialog__detail-value {
+  color: #202124;
+  word-break: break-all;
+}
+
+.mt-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 24px 20px;
+  border-top: 1px solid #e8eaed;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.mt-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  font-size: 13px;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.mt-btn:active {
+  transform: scale(0.97);
+}
+
+.mt-btn--secondary {
+  background: #ffffff;
+  border-color: #dadce0;
+  color: #3c4043;
+}
+
+.mt-btn--secondary:hover {
+  background: #f1f3f4;
+}
+
+.mt-btn--primary {
+  background: #1a73e8;
+  color: #ffffff;
+}
+
+.mt-btn--primary:hover {
+  background: #1765cc;
+}
+
+/* ── Toast notification ─────────────────────────────────────────────── */
+.mt-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  opacity: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 2147483646;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  max-width: 320px;
+  pointer-events: none;
+}
+
+.mt-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.mt-toast--success {
+  background: #188038;
+  color: #ffffff;
+}
+
+.mt-toast--error {
+  background: #c5221f;
+  color: #ffffff;
+}
+
+.mt-toast__icon {
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
