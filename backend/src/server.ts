@@ -26,7 +26,6 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 
 // ── Rate limiters ─────────────────────────────────────────────────────────
-// Pixel endpoint: 300 req/min per IP (all from Gmail proxy expected in bursts)
 const pixelLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 300,
@@ -35,7 +34,6 @@ const pixelLimiter = rateLimit({
   skip: (_req) => process.env.NODE_ENV === 'test',
 });
 
-// API endpoints: 100 req/15min per IP
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -48,7 +46,7 @@ const apiLimiter = rateLimit({
 app.use('/pixel', pixelLimiter, pixelRouter);
 app.use('/api', apiLimiter, analyticsRouter);
 
-// ── Root ping ─────────────────────────────────────────────────────────────
+// ── Health check (used by Railway) ────────────────────────────────────────
 app.get('/', (_req: Request, res: Response) => {
   res.json({ service: 'MailTrackr API', version: '1.0.0', status: 'running' });
 });
@@ -62,16 +60,20 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────
 async function start(): Promise<void> {
+  // Run migration but DON'T crash if it fails
   try {
     console.log('[Server] Running database migration…');
     await runMigration();
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`[Server] MailTrackr API running on port ${PORT}`);
-    });
+    console.log('[Server] Migration complete.');
   } catch (err) {
-    console.error('[Server] Startup failed:', err);
-    process.exit(1);
+    console.error('[Server] Migration failed (non-fatal):', err);
+    console.log('[Server] Continuing without migration…');
   }
+
+  // Always start the server, even if migration failed
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Server] MailTrackr API running on 0.0.0.0:${PORT}`);
+  });
 }
 
 start();
