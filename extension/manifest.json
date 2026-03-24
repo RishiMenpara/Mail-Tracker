@@ -7,8 +7,8 @@
   "permissions": ["storage", "activeTab"],
   "host_permissions": [
     "https://mail.google.com/*",
-    "https://*.up.railway.app/*",
-    "https://*.railway.app/*"
+    "https://*.onrender.com/*",
+    "https://*.up.railway.app/*"
   ],
 
   "background": {
