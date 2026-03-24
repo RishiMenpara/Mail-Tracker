@@ -4,8 +4,8 @@
  * and fetches open counts from the backend API.
  */
 
-const API_BASE_URL = 'https://YOUR_RAILWAY_APP.up.railway.app';
-const DASHBOARD_URL = 'https://YOUR_DASHBOARD.vercel.app';
+const API_BASE_URL = 'https://mail-tracker-production-478a.up.railway.app';
+const DASHBOARD_URL = 'https://mail-tracker-production-478a.up.railway.app';
 
 async function loadPopup() {
   const { trackedEmails = [] } = await chrome.storage.local.get(['trackedEmails']);

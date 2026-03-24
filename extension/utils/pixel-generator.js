@@ -1,6 +1,6 @@
 // Pixel generator utility
-// NOTE: Update TRACKING_SERVER_URL after Railway deployment
-const TRACKING_SERVER_URL = 'https://YOUR_RAILWAY_APP.up.railway.app';
+// Production backend URL
+const TRACKING_SERVER_URL = 'https://mail-tracker-production-478a.up.railway.app';
 
 function generatePixelHTML(emailId, viewerId) {
   const ts = Date.now();
