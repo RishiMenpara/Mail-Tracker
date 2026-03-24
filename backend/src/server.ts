@@ -65,7 +65,7 @@ async function start(): Promise<void> {
   try {
     console.log('[Server] Running database migration…');
     await runMigration();
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`[Server] MailTrackr API running on port ${PORT}`);
     });
   } catch (err) {
