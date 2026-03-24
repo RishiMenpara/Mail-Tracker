@@ -3,8 +3,8 @@
  * Handles API communication from content scripts.
  */
 
-const API_BASE_URL = 'https://mail-tracker-production-478a.up.railway.app';
-const DASHBOARD_URL = 'https://mail-tracker-production-478a.up.railway.app';
+const API_BASE_URL = 'https://mail-tracker-v60z.onrender.com';
+const DASHBOARD_URL = 'https://mail-tracker-v60z.onrender.com';
 
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

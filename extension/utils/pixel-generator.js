@@ -1,6 +1,6 @@
 // Pixel generator utility
 // Production backend URL
-const TRACKING_SERVER_URL = 'https://mail-tracker-production-478a.up.railway.app';
+const TRACKING_SERVER_URL = 'https://mail-tracker-v60z.onrender.com';
 
 function generatePixelHTML(emailId, viewerId) {
   const ts = Date.now();
