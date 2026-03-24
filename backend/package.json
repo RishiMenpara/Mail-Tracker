@@ -17,9 +17,7 @@
     "express-rate-limit": "^7.3.1",
     "pg": "^8.11.5",
     "ua-parser-js": "^1.0.38",
-    "uuid": "^9.0.1"
-  },
-  "devDependencies": {
+    "uuid": "^9.0.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.12.12",
