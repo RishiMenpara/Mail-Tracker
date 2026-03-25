@@ -162,6 +162,8 @@
     const emailId = window.MailTrackrUUID.generate();
     const viewerId = window.MailTrackrUUID.generate();
 
+    console.log('[MailTrackr] Starting tracking registration…', { emailId, viewerId, senderEmail, subject, recipientEmail });
+
     try {
       // Register with backend via background service worker
       const response = await chrome.runtime.sendMessage({
@@ -175,7 +177,19 @@
         },
       });
 
-      if (response && response.success) {
+      console.log('[MailTrackr] Service worker response:', response);
+
+      if (!response) {
+        console.error('[MailTrackr] No response from service worker — it may have been inactive');
+        window.MailTrackrUI.showNotification('Tracking failed — no response from extension. Try again.', 'error');
+        sendButton.click();
+        return;
+      }
+
+      if (response.success) {
+        const trackingEmailId = response.emailId || emailId;
+        console.log('[MailTrackr] Registration success. Using emailId:', trackingEmailId);
+
         // Inject pixel into compose body
         const bodyEl = composeEl.querySelector('[contenteditable="true"]') ||
           composeEl.querySelector('.Am.Al.editable') ||
@@ -183,15 +197,18 @@
 
         if (bodyEl) {
           const pixelHtml = window.MailTrackrPixel.generatePixelHTML(
-            response.emailId || emailId,
+            trackingEmailId,
             viewerId,
           );
           bodyEl.insertAdjacentHTML('beforeend', pixelHtml);
+          console.log('[MailTrackr] Pixel HTML injected into email body');
+        } else {
+          console.warn('[MailTrackr] Could not find email body element to inject pixel');
         }
 
         // Save to local storage for popup
         saveTrackedEmail({
-          id: response.emailId || emailId,
+          id: trackingEmailId,
           subject,
           recipientEmail,
           sentAt: new Date().toISOString(),
@@ -199,7 +216,7 @@
 
         window.MailTrackrUI.showNotification('✓ Tracking pixel injected — sending email…');
       } else {
-        console.warn('[MailTrackr] Backend registration failed, sending without tracking');
+        console.warn('[MailTrackr] Backend registration failed:', response.error);
         window.MailTrackrUI.showNotification('Tracking failed — sending normally', 'error');
       }
     } catch (err) {

@@ -9,8 +9,12 @@ const DASHBOARD_URL = 'https://mail-tracker-v60z.onrender.com';
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'REGISTER_EMAIL') {
+    console.log('[ServiceWorker] REGISTER_EMAIL received:', message.payload);
     handleRegisterEmail(message.payload)
-      .then((result) => sendResponse(result))
+      .then((result) => {
+        console.log('[ServiceWorker] REGISTER_EMAIL success:', result);
+        sendResponse(result);
+      })
       .catch((err) => {
         console.error('[ServiceWorker] REGISTER_EMAIL failed:', err);
         sendResponse({ success: false, error: err.message });
@@ -36,11 +40,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 async function handleRegisterEmail(payload) {
   const { email_id, sender_email, subject, viewer_id, recipient_email } = payload;
 
+  console.log('[ServiceWorker] Calling API:', `${API_BASE_URL}/api/emails`);
+
   const response = await fetch(`${API_BASE_URL}/api/emails`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sender_email, subject, viewer_id, recipient_email }),
   });
+
+  console.log('[ServiceWorker] API response status:', response.status);
 
   if (!response.ok) {
     const text = await response.text();
@@ -48,5 +56,6 @@ async function handleRegisterEmail(payload) {
   }
 
   const data = await response.json();
+  console.log('[ServiceWorker] API response data:', data);
   return { success: true, emailId: data.id || email_id };
 }

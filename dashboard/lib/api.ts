@@ -1,5 +1,5 @@
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://YOUR_RAILWAY_APP.up.railway.app';
+  process.env.NEXT_PUBLIC_API_URL || 'https://mail-tracker-v60z.onrender.com';
 
 export interface Email {
   id: string;
