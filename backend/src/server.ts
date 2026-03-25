@@ -16,7 +16,7 @@ app.set('trust proxy', 1);
 const corsOrigins = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean);
 app.use(
   cors({
-    origin: corsOrigins.length > 0 ? corsOrigins : '*',
+    origin: corsOrigins.includes('*') ? '*' : (corsOrigins.length > 0 ? corsOrigins : '*'),
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }),
