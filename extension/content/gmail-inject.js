@@ -224,6 +224,10 @@
           if (bodyEl) {
             const pixelHtml = window.MailTrackrPixel.generatePixelHTML(trackingEmailId, viewerId);
             bodyEl.insertAdjacentHTML('beforeend', pixelHtml);
+            
+            // Force Gmail's internal state (React) to acknowledge the change
+            bodyEl.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+            
             console.log('[MailTrackr] Pixel injected into email body');
           } else {
             console.warn('[MailTrackr] Could not find email body element');
@@ -252,9 +256,11 @@
       window.MailTrackrUI.showNotification('Tracking failed — sending without tracking', 'error');
     }
 
-    // Always send the email
-    console.log('[MailTrackr] Triggering Gmail send…');
-    sendButton.click();
+    // Always send the email after a tiny delay so Gmail state catches up
+    console.log('[MailTrackr] Triggering Gmail send… 150ms delay');
+    setTimeout(() => {
+      sendButton.click();
+    }, 150);
   }
 
   /** Save tracked email metadata to chrome.storage.local for popup display */
