@@ -12,7 +12,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for full deployment instructions.
 Gmail (Chrome Extension)
   ↓ Compose window injection (MutationObserver)
   ↓ Send button intercept → pixel injected
-Railway Backend API (Express + TypeScript)
+Render Backend API (Express + TypeScript)
   ↓ GET /pixel/:emailId/:viewerId  → strict no-cache headers
   ↓ POST /api/emails               → register tracked email
   ↓ GET /api/emails/:id            → analytics

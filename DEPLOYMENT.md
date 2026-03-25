@@ -1,52 +1,48 @@
 # MailTrackr Deployment Guide
 
 ## Prerequisites
-- [Railway](https://railway.app) account (free tier)
+- [Render](https://render.com) account (free tier)
 - [Vercel](https://vercel.com) account (free tier)
 - Chrome browser for extension testing
 
 ---
 
-## Step 1: Deploy Backend to Railway
+## Step 1: Deploy Backend to Render
 
-### 1a. Create Railway Project
+### 1a. Create Render Web Service
 
-1. Go to [railway.app](https://railway.app) → **New Project**
-2. Select **"Deploy from GitHub repo"** → connect your repo
-3. Select the `backend` folder as the root directory
-   - Or in Railway: **Settings → Root Directory → `backend`**
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect your GitHub repository
+3. Select the `backend` folder as the **Root Directory**
 
 ### 1b. Add PostgreSQL
 
-1. In your Railway project → click **"+ New"** → **"Database"** → **"Add PostgreSQL"**
-2. Click the PostgreSQL service → go to **"Connect"** tab
-3. Copy the **DATABASE_URL** — you'll need it next
+1. In your Render dashboard → **New** → **PostgreSQL**
+2. Create the database and copy the **Internal Database URL** (or External if needed).
 
 ### 1c. Set Environment Variables
 
-In your Railway backend service → **Variables** tab:
+In your Render backend service → **Environment** tab:
 
 ```
 DATABASE_URL=<paste from step 1b>
 NODE_ENV=production
-CORS_ORIGIN=https://YOUR_DASHBOARD.vercel.app
+CORS_ORIGIN=*
 ```
-
-> **Note**: `PORT` is set automatically by Railway.
 
 ### 1d. Deploy
 
-Railway auto-deploys on push. Alternatively click **"Deploy"** in the dashboard.
+Render auto-deploys on push. Click **"Manual Deploy"** if needed.
 
 **Wait for deploy to complete**. Check logs for:
 ```
-[Migration] Database schema applied successfully
-[Server] MailTrackr API running on port XXXX
+[Server] Running database migration…
+[Server] MailTrackr API running on 0.0.0.0:10000
 ```
 
-### 1e. Copy Your Railway URL
+### 1e. Copy Your Render URL
 
-From Railway: **Settings → Domains** → copy the generated URL (e.g., `https://mailtrackr-production.up.railway.app`)
+From Render: Copy the generated URL at the top left (e.g., `https://mail-tracker-v60z.onrender.com`)
 
 ---
 
@@ -56,21 +52,19 @@ Open these two files and replace the placeholder URL:
 
 **`extension/utils/pixel-generator.js`** — line 3:
 ```js
-const TRACKING_SERVER_URL = 'https://YOUR_RAILWAY_APP.up.railway.app';
-// Change to:
-const TRACKING_SERVER_URL = 'https://mailtrackr-production.up.railway.app';
+const TRACKING_SERVER_URL = 'https://mail-tracker-v60z.onrender.com';
 ```
 
 **`extension/background/service-worker.js`** — lines 4–5:
 ```js
-const API_BASE_URL = 'https://YOUR_RAILWAY_APP.up.railway.app';
+const API_BASE_URL = 'https://mail-tracker-v60z.onrender.com';
 const DASHBOARD_URL = 'https://YOUR_DASHBOARD.vercel.app';
 // Change to actual URLs after deploying dashboard
 ```
 
 **`extension/popup/popup.js`** — lines 4–5:
 ```js
-const API_BASE_URL = 'https://YOUR_RAILWAY_APP.up.railway.app';
+const API_BASE_URL = 'https://mail-tracker-v60z.onrender.com';
 const DASHBOARD_URL = 'https://YOUR_DASHBOARD.vercel.app';
 ```
 
@@ -81,7 +75,7 @@ const DASHBOARD_URL = 'https://YOUR_DASHBOARD.vercel.app';
 ### 3a. Create `.env.local` in dashboard folder
 
 ```bash
-NEXT_PUBLIC_API_URL=https://mailtrackr-production.up.railway.app
+NEXT_PUBLIC_API_URL=https://mail-tracker-v60z.onrender.com
 ```
 
 ### 3b. Deploy via Vercel CLI or GitHub
@@ -149,7 +143,7 @@ Surrogate-Control: no-store
 | Issue | Fix |
 |-------|-----|
 | Toggle not appearing in Gmail | Reload Gmail page; compose window may need refresh |
-| API errors in popup | Check Railway logs for errors |
-| CORS errors | Update `CORS_ORIGIN` env var in Railway to match Vercel URL |
-| DB migration fails | Check `DATABASE_URL` is correctly set in Railway env vars |
-| Pixel not recording | Check Railway logs for `[Tracking] Open recorded` |
+| API errors in popup | Check Render logs for errors |
+| CORS errors | Ensure `CORS_ORIGIN=*` is set in Render environment variables |
+| DB migration fails | Check `DATABASE_URL` in Render PostgreSQL connection |
+| Pixel not recording | Check Render logs for `[Analytics] Recorded email open` |
