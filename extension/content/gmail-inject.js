@@ -64,36 +64,29 @@
    */
   function getRecipientEmail(composeEl) {
     const toField = composeEl.querySelector('[name="to"]') ||
-      composeEl.querySelector('.vO') ||
-      composeEl.querySelector('[data-hovercard-id]');
+      composeEl.querySelector('input.vO') ||
+      composeEl.querySelector('input.agP');
 
     if (toField && toField.value) return toField.value;
-    if (toField && toField.getAttribute('data-hovercard-id')) {
-      return toField.getAttribute('data-hovercard-id');
-    }
 
-    // Try to find email chips
-    const chip = composeEl.querySelector('.vN.aXj .vN, .afV .vN');
-    if (chip) return chip.getAttribute('email') || chip.textContent.trim();
+    // Try to find email chips (the pill element added after typing an email)
+    const chips = composeEl.querySelectorAll('[data-hovercard-id], .vN, .afV');
+    for (const chip of chips) {
+      const email = chip.getAttribute('data-hovercard-id') || chip.getAttribute('email') || chip.innerText.trim();
+      if (email && email.includes('@')) return email.replace(/[<>]/g, '').trim();
+    }
+    
+    // As a last fallback, return what's in the input field, even if partial
+    if (toField && toField.innerText) return toField.innerText.trim();
 
     return '';
   }
 
-  /**
-   * Get the email subject from the compose window.
-   */
-  function getSubject(composeEl) {
-    const subjectField = composeEl.querySelector('input[name="subjectbox"]') ||
-      composeEl.querySelector('.aoT');
-    return subjectField ? subjectField.value.trim() : '(no subject)';
-  }
-
-  /**
-   * Get the sender email from the Gmail page header.
-   */
   function getSenderEmail() {
     const accountEl = document.querySelector('[aria-label*="Google Account:"]') ||
-      document.querySelector('[data-email]');
+      document.querySelector('[data-email]') ||
+      document.querySelector('.gb_d.gb_Fa.gb_A');
+      
     if (accountEl) {
       const email = accountEl.getAttribute('data-email') ||
         (accountEl.getAttribute('aria-label') || '').match(/[\w.-]+@[\w.-]+/)?.[0];
@@ -101,12 +94,16 @@
     }
     const metaEmail = document.querySelector('meta[name="email"]');
     if (metaEmail) return metaEmail.content;
+    
+    // Fallback: search for any div containing an email in the top right user menu
+    const titleUser = document.querySelector('.gb_ef[title], .gb_de[title]');
+    if (titleUser) {
+      const match = titleUser.getAttribute('title').match(/[\w.-]+@[\w.-]+/);
+      if (match) return match[0];
+    }
     return '';
   }
 
-  /**
-   * Core: inject tracking toggle into a compose window.
-   */
   function injectTrackingToggle(composeEl) {
     if (processedComposers.has(composeEl)) return;
 
@@ -134,9 +131,6 @@
     }
   }
 
-  /**
-   * Intercept the Gmail send button to inject tracking pixel before send.
-   */
   function interceptSendButton(sendButton, composeEl, toggleContainer) {
     let sendingInProgress = false;
 
@@ -152,9 +146,17 @@
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      const senderEmail = getSenderEmail();
+      const senderEmail = getSenderEmail() || 'unknown-sender@gmail.com';
       const recipientEmail = getRecipientEmail(composeEl);
       const subject = getSubject(composeEl);
+      
+      console.log('[MailTrackr] Parsed emails - Sender:', senderEmail, '| Recipient:', recipientEmail);
+
+      if (!recipientEmail || recipientEmail.trim() === '') {
+        window.MailTrackrUI.showNotification('Please add a valid recipient before sending with tracking.', 'error');
+        // Temporarily disable the sending blocker so the user can fix the field and click send normally
+        return;
+      }
 
       console.log('[MailTrackr] Send intercepted. sender:', senderEmail, 'to:', recipientEmail, 'subject:', subject);
 
