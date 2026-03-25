@@ -13,10 +13,10 @@
   const processedComposers = new WeakSet();
 
   // ── Helper: reliable chrome.runtime.sendMessage with timeout ────────────
-  function sendMessageToBackground(msg, timeoutMs = 15000) {
+  function sendMessageToBackground(msg, timeoutMs = 55000) { // Render needs up to 50s for cold start
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        reject(new Error('Service worker response timed out after ' + timeoutMs + 'ms'));
+        reject(new Error('Service worker response timed out after ' + Math.round(timeoutMs/1000) + 's'));
       }, timeoutMs);
 
       try {
@@ -35,102 +35,6 @@
     });
   }
 
-  /**
-   * Find the Gmail send button inside a compose container.
-   * Gmail uses data-tooltip attributes to identify buttons.
-   */
-  function findSendButton(composeEl) {
-    return (
-      composeEl.querySelector('[data-tooltip="Send"]') ||
-      composeEl.querySelector('[data-tooltip^="Send"]') ||
-      composeEl.querySelector('.T-I.J-J5-Ji.aoO') ||
-      composeEl.querySelector('[aria-label="Send"]')
-    );
-  }
-
-  /**
-   * Find the compose toolbar (where we inject the toggle).
-   */
-  function findToolbar(composeEl) {
-    return (
-      composeEl.querySelector('.IZ') ||       // Bottom toolbar row
-      composeEl.querySelector('.aDh') ||      // Formatting toolbar row
-      composeEl.querySelector('[gh="mtb"]')   // Gmail toolbar body
-    );
-  }
-
-  /**
-   * Extract the recipient email from a compose window.
-   */
-  function getRecipientEmail(composeEl) {
-    const toField = composeEl.querySelector('[name="to"]') ||
-      composeEl.querySelector('input.vO') ||
-      composeEl.querySelector('input.agP');
-
-    if (toField && toField.value) return toField.value;
-
-    // Try to find email chips (the pill element added after typing an email)
-    const chips = composeEl.querySelectorAll('[data-hovercard-id], .vN, .afV');
-    for (const chip of chips) {
-      const email = chip.getAttribute('data-hovercard-id') || chip.getAttribute('email') || chip.innerText.trim();
-      if (email && email.includes('@')) return email.replace(/[<>]/g, '').trim();
-    }
-    
-    // As a last fallback, return what's in the input field, even if partial
-    if (toField && toField.innerText) return toField.innerText.trim();
-
-    return '';
-  }
-
-  function getSenderEmail() {
-    const accountEl = document.querySelector('[aria-label*="Google Account:"]') ||
-      document.querySelector('[data-email]') ||
-      document.querySelector('.gb_d.gb_Fa.gb_A');
-      
-    if (accountEl) {
-      const email = accountEl.getAttribute('data-email') ||
-        (accountEl.getAttribute('aria-label') || '').match(/[\w.-]+@[\w.-]+/)?.[0];
-      if (email) return email;
-    }
-    const metaEmail = document.querySelector('meta[name="email"]');
-    if (metaEmail) return metaEmail.content;
-    
-    // Fallback: search for any div containing an email in the top right user menu
-    const titleUser = document.querySelector('.gb_ef[title], .gb_de[title]');
-    if (titleUser) {
-      const match = titleUser.getAttribute('title').match(/[\w.-]+@[\w.-]+/);
-      if (match) return match[0];
-    }
-    return '';
-  }
-
-  function injectTrackingToggle(composeEl) {
-    if (processedComposers.has(composeEl)) return;
-
-    const toolbar = findToolbar(composeEl);
-    if (!toolbar) return;
-
-    const composerId = window.MailTrackrUUID.generate();
-    processedComposers.add(composeEl);
-
-    const toggleContainer = window.MailTrackrUI.createTrackingToggle(composerId);
-    toolbar.appendChild(toggleContainer);
-
-    const sendButton = findSendButton(composeEl);
-    if (sendButton) {
-      interceptSendButton(sendButton, composeEl, toggleContainer);
-    } else {
-      const obs = new MutationObserver(() => {
-        const btn = findSendButton(composeEl);
-        if (btn) {
-          obs.disconnect();
-          interceptSendButton(btn, composeEl, toggleContainer);
-        }
-      });
-      obs.observe(composeEl, { childList: true, subtree: true });
-    }
-  }
-
   function interceptSendButton(sendButton, composeEl, toggleContainer) {
     let sendingInProgress = false;
 
@@ -143,20 +47,22 @@
       const toggle = toggleContainer.querySelector('.mt-toggle');
       if (!toggle || toggle.dataset.enabled !== 'true') return;
 
+      const recipientEmail = getRecipientEmail(composeEl);
+      
+      // CRITICAL FIX: Ensure we only block the Send button if we successfully found a recipient email.
+      // If we can't parse it (e.g., they typed an invalid address or it's empty), we MUST
+      // return immediately WITHOUT calling preventDefault(). This allows Gmail's native validation
+      // to pop up its error dialog (e.g. "The address is not recognized").
+      if (!recipientEmail || recipientEmail.trim() === '') {
+        console.warn('[MailTrackr] Recipient email is empty or blocked. Bypassing MailTrackr so Gmail can show its native error dialog.');
+        return;
+      }
+
       e.preventDefault();
       e.stopImmediatePropagation();
 
       const senderEmail = getSenderEmail() || 'unknown-sender@gmail.com';
-      const recipientEmail = getRecipientEmail(composeEl);
       const subject = getSubject(composeEl);
-      
-      console.log('[MailTrackr] Parsed emails - Sender:', senderEmail, '| Recipient:', recipientEmail);
-
-      if (!recipientEmail || recipientEmail.trim() === '') {
-        window.MailTrackrUI.showNotification('Please add a valid recipient before sending with tracking.', 'error');
-        // Temporarily disable the sending blocker so the user can fix the field and click send normally
-        return;
-      }
 
       console.log('[MailTrackr] Send intercepted. sender:', senderEmail, 'to:', recipientEmail, 'subject:', subject);
 
@@ -187,74 +93,67 @@
     const viewerId = window.MailTrackrUUID.generate();
 
     console.log('[MailTrackr] Registering email…', { emailId, viewerId, senderEmail, subject, recipientEmail });
-    window.MailTrackrUI.showNotification('Registering tracking… please wait', 'success');
+    
+    // Add an explicit message that the server might be waking up
+    window.MailTrackrUI.showNotification('Registering tracking... (may take up to 50s if server is waking up)', 'success');
 
     let registered = false;
 
-    // Retry up to 2 times
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        console.log('[MailTrackr] Attempt', attempt, '— sending REGISTER_EMAIL to service worker');
+    try {
+      console.log('[MailTrackr] sending REGISTER_EMAIL to service worker');
 
-        const response = await sendMessageToBackground({
-          type: 'REGISTER_EMAIL',
-          payload: {
-            email_id: emailId,
-            sender_email: senderEmail,
-            subject,
-            viewer_id: viewerId,
-            recipient_email: recipientEmail,
-          },
+      const response = await sendMessageToBackground({
+        type: 'REGISTER_EMAIL',
+        payload: {
+          email_id: emailId,
+          sender_email: senderEmail,
+          subject,
+          viewer_id: viewerId,
+          recipient_email: recipientEmail,
+        },
+      });
+
+      console.log('[MailTrackr] Service worker response:', JSON.stringify(response));
+
+      if (response && response.success) {
+        const trackingEmailId = response.emailId || emailId;
+        console.log('[MailTrackr] Registration success! emailId:', trackingEmailId);
+
+        // Inject pixel into compose body
+        const bodyEl = composeEl.querySelector('[contenteditable="true"]') ||
+          composeEl.querySelector('.Am.Al.editable') ||
+          composeEl.querySelector('[role="textbox"]');
+
+        if (bodyEl) {
+          const pixelHtml = window.MailTrackrPixel.generatePixelHTML(trackingEmailId, viewerId);
+          bodyEl.insertAdjacentHTML('beforeend', pixelHtml);
+          
+          // Force Gmail's internal state (React) to acknowledge the change
+          bodyEl.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+          
+          console.log('[MailTrackr] Pixel injected into email body');
+        } else {
+          console.warn('[MailTrackr] Could not find email body element');
+        }
+
+        saveTrackedEmail({
+          id: trackingEmailId,
+          subject,
+          recipientEmail,
+          sentAt: new Date().toISOString(),
         });
 
-        console.log('[MailTrackr] Service worker response:', JSON.stringify(response));
-
-        if (!response) {
-          console.error('[MailTrackr] Attempt', attempt, '— undefined response from service worker');
-          continue;
-        }
-
-        if (response.success) {
-          const trackingEmailId = response.emailId || emailId;
-          console.log('[MailTrackr] Registration success! emailId:', trackingEmailId);
-
-          // Inject pixel into compose body
-          const bodyEl = composeEl.querySelector('[contenteditable="true"]') ||
-            composeEl.querySelector('.Am.Al.editable') ||
-            composeEl.querySelector('[role="textbox"]');
-
-          if (bodyEl) {
-            const pixelHtml = window.MailTrackrPixel.generatePixelHTML(trackingEmailId, viewerId);
-            bodyEl.insertAdjacentHTML('beforeend', pixelHtml);
-            
-            // Force Gmail's internal state (React) to acknowledge the change
-            bodyEl.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-            
-            console.log('[MailTrackr] Pixel injected into email body');
-          } else {
-            console.warn('[MailTrackr] Could not find email body element');
-          }
-
-          saveTrackedEmail({
-            id: trackingEmailId,
-            subject,
-            recipientEmail,
-            sentAt: new Date().toISOString(),
-          });
-
-          window.MailTrackrUI.showNotification('✓ Tracking pixel injected — sending email…');
-          registered = true;
-          break;
-        } else {
-          console.warn('[MailTrackr] Attempt', attempt, '— backend returned failure:', response.error);
-        }
-      } catch (err) {
-        console.error('[MailTrackr] Attempt', attempt, '— error:', err.message);
+        window.MailTrackrUI.showNotification('✓ Tracking pixel injected — sending email…');
+        registered = true;
+      } else {
+        console.warn('[MailTrackr] Backend returned failure:', response?.error);
       }
+    } catch (err) {
+      console.error('[MailTrackr] Error during registration:', err.message);
     }
 
     if (!registered) {
-      console.error('[MailTrackr] All registration attempts failed');
+      console.error('[MailTrackr] Registration failed');
       window.MailTrackrUI.showNotification('Tracking failed — sending without tracking', 'error');
     }
 
