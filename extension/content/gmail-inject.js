@@ -117,7 +117,12 @@
    * Intercept the Gmail send button to inject tracking pixel before send.
    */
   function interceptSendButton(sendButton, composeEl, toggleContainer) {
+    let sendingInProgress = false; // Guard against re-entry after pixel injection
+
     sendButton.addEventListener('click', (e) => {
+      // If we already injected the pixel and are re-clicking to actually send, let it through
+      if (sendingInProgress) return;
+
       const toggle = toggleContainer.querySelector('.mt-toggle');
       if (!toggle || toggle.dataset.enabled !== 'true') return; // Tracking OFF — let Gmail handle it normally
 
@@ -133,10 +138,12 @@
         recipientEmail,
         () => {
           // User confirmed — inject pixel and send
+          sendingInProgress = true;
           injectPixelAndSend(composeEl, sendButton, senderEmail, subject, recipientEmail);
         },
         () => {
           // User cancelled — disable tracking for this compose
+          sendingInProgress = true;
           toggle.dataset.enabled = 'false';
           toggle.className = 'mt-toggle mt-toggle--off';
           toggle.title = 'MailTrackr: tracking is OFF';
