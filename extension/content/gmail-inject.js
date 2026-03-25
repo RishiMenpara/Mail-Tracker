@@ -15,6 +15,10 @@
   // ── Helper: reliable chrome.runtime.sendMessage with timeout ────────────
   function sendMessageToBackground(msg, timeoutMs = 55000) { // Render needs up to 50s for cold start
     return new Promise((resolve, reject) => {
+      if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+        return reject(new Error('Extension context invalidated. Please refresh Gmail.'));
+      }
+
       const timer = setTimeout(() => {
         reject(new Error('Service worker response timed out after ' + Math.round(timeoutMs/1000) + 's'));
       }, timeoutMs);
@@ -258,9 +262,13 @@
       }
     } catch (err) {
       console.error('[MailTrackr] Error during registration:', err.message);
+      if (err.message.includes('Extension context invalidated')) {
+        registered = 'aborted';
+        window.MailTrackrUI.showNotification('MailTrackr updated. Please refresh Gmail to track emails.', 'error');
+      }
     }
 
-    if (!registered) {
+    if (registered === false) {
       console.error('[MailTrackr] Registration failed');
       window.MailTrackrUI.showNotification('Tracking failed — sending without tracking', 'error');
     }
