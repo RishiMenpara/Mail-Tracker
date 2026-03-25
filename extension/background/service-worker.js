@@ -16,12 +16,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'REGISTER_EMAIL') {
     handleRegisterEmail(message.payload)
       .then((result) => {
-        console.log('[ServiceWorker] REGISTER_EMAIL success:', JSON.stringify(result));
-        sendResponse(result);
+        console.log('[ServiceWorker] REGISTER_EMAIL success:', result);
+        try {
+          sendResponse(result);
+        } catch (e) {
+          console.warn('[ServiceWorker] Port closed before success response could be sent.', e);
+        }
       })
       .catch((err) => {
         console.error('[ServiceWorker] REGISTER_EMAIL error:', err.message, err.stack);
-        sendResponse({ success: false, error: err.message });
+        try {
+          sendResponse({ success: false, error: err.message });
+        } catch (e) {
+          console.warn('[ServiceWorker] Port closed before error response could be sent.', e);
+        }
       });
     return true; // CRITICAL: keeps the message channel open for async sendResponse
   }
