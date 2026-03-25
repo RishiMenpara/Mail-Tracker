@@ -1,25 +1,29 @@
 /**
  * service-worker.js — Manifest V3 background service worker.
  * Handles API communication from content scripts.
+ * VERSION 2.0 — 2026-03-25
  */
 
 const API_BASE_URL = 'https://mail-tracker-v60z.onrender.com';
 const DASHBOARD_URL = 'https://mail-tracker-v60z.onrender.com';
 
+console.log('[ServiceWorker v2.0] Loaded. API:', API_BASE_URL);
+
 // Listen for messages from content scripts
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('[ServiceWorker] Message received:', message.type, 'from tab:', sender.tab?.id);
+
   if (message.type === 'REGISTER_EMAIL') {
-    console.log('[ServiceWorker] REGISTER_EMAIL received:', message.payload);
     handleRegisterEmail(message.payload)
       .then((result) => {
-        console.log('[ServiceWorker] REGISTER_EMAIL success:', result);
+        console.log('[ServiceWorker] REGISTER_EMAIL success:', JSON.stringify(result));
         sendResponse(result);
       })
       .catch((err) => {
-        console.error('[ServiceWorker] REGISTER_EMAIL failed:', err);
+        console.error('[ServiceWorker] REGISTER_EMAIL error:', err.message, err.stack);
         sendResponse({ success: false, error: err.message });
       });
-    return true; // Keep message channel open for async response
+    return true; // CRITICAL: keeps the message channel open for async sendResponse
   }
 
   if (message.type === 'GET_DASHBOARD_URL') {
@@ -31,31 +35,41 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({ url: API_BASE_URL });
     return false;
   }
+
+  if (message.type === 'PING') {
+    sendResponse({ pong: true, version: '2.0' });
+    return false;
+  }
 });
 
 /**
  * Register a new tracked email with the backend API.
- * Returns { success: true, emailId } or { success: false, error }.
  */
 async function handleRegisterEmail(payload) {
   const { email_id, sender_email, subject, viewer_id, recipient_email } = payload;
 
-  console.log('[ServiceWorker] Calling API:', `${API_BASE_URL}/api/emails`);
+  const apiUrl = `${API_BASE_URL}/api/emails`;
+  const body = JSON.stringify({ sender_email, subject, viewer_id, recipient_email });
 
-  const response = await fetch(`${API_BASE_URL}/api/emails`, {
+  console.log('[ServiceWorker] POST', apiUrl);
+  console.log('[ServiceWorker] Body:', body);
+
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sender_email, subject, viewer_id, recipient_email }),
+    body: body,
   });
 
-  console.log('[ServiceWorker] API response status:', response.status);
+  console.log('[ServiceWorker] Response status:', response.status, response.statusText);
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`API error ${response.status}: ${text}`);
+    console.error('[ServiceWorker] API error body:', text);
+    throw new Error(`API ${response.status}: ${text}`);
   }
 
   const data = await response.json();
-  console.log('[ServiceWorker] API response data:', data);
+  console.log('[ServiceWorker] API response parsed:', JSON.stringify(data));
+
   return { success: true, emailId: data.id || email_id };
 }
