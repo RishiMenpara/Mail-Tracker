@@ -1,13 +1,13 @@
 /**
  * gmail-inject.js — Main content script for Gmail compose integration.
  * Uses MutationObserver to detect compose windows and injects the tracking toggle.
- * VERSION 2.0 — 2026-03-25
+ * VERSION 2.1 — 2026-03-25
  */
 
 (function () {
   'use strict';
 
-  console.log('[MailTrackr v2.0] Content script loaded on', window.location.href);
+  console.log('[MailTrackr v2.1] Content script loaded on', window.location.href);
 
   // Track which compose windows we've already processed
   const processedComposers = new WeakSet();
@@ -33,6 +33,114 @@
         reject(err);
       }
     });
+  }
+
+  /**
+   * Find the Gmail send button inside a compose container.
+   * Gmail uses data-tooltip attributes to identify buttons.
+   */
+  function findSendButton(composeEl) {
+    return (
+      composeEl.querySelector('[data-tooltip="Send"]') ||
+      composeEl.querySelector('[data-tooltip^="Send"]') ||
+      composeEl.querySelector('.T-I.J-J5-Ji.aoO') ||
+      composeEl.querySelector('[aria-label="Send"]')
+    );
+  }
+
+  /**
+   * Find the compose toolbar (where we inject the toggle).
+   */
+  function findToolbar(composeEl) {
+    return (
+      composeEl.querySelector('.IZ') ||       // Bottom toolbar row
+      composeEl.querySelector('.aDh') ||      // Formatting toolbar row
+      composeEl.querySelector('[gh="mtb"]')   // Gmail toolbar body
+    );
+  }
+
+  /**
+   * Extract the recipient email from a compose window.
+   */
+  function getRecipientEmail(composeEl) {
+    const toField = composeEl.querySelector('[name="to"]') ||
+      composeEl.querySelector('input.vO') ||
+      composeEl.querySelector('input.agP');
+
+    if (toField && toField.value) return toField.value;
+
+    // Try to find email chips (the pill element added after typing an email)
+    const chips = composeEl.querySelectorAll('[data-hovercard-id], .vN, .afV');
+    for (const chip of chips) {
+      const email = chip.getAttribute('data-hovercard-id') || chip.getAttribute('email') || chip.innerText.trim();
+      if (email && email.includes('@')) return email.replace(/[<>]/g, '').trim();
+    }
+    
+    // As a last fallback, return what's in the input field, even if partial
+    if (toField && toField.innerText) return toField.innerText.trim();
+
+    return '';
+  }
+
+  /**
+   * Get the email subject from the compose window.
+   */
+  function getSubject(composeEl) {
+    const subjectField = composeEl.querySelector('input[name="subjectbox"]') ||
+      composeEl.querySelector('.aoT');
+    return subjectField ? subjectField.value.trim() : '(no subject)';
+  }
+
+  function getSenderEmail() {
+    const accountEl = document.querySelector('[aria-label*="Google Account:"]') ||
+      document.querySelector('[data-email]') ||
+      document.querySelector('.gb_d.gb_Fa.gb_A');
+      
+    if (accountEl) {
+      const email = accountEl.getAttribute('data-email') ||
+        (accountEl.getAttribute('aria-label') || '').match(/[\w.-]+@[\w.-]+/)?.[0];
+      if (email) return email;
+    }
+    const metaEmail = document.querySelector('meta[name="email"]');
+    if (metaEmail) return metaEmail.content;
+    
+    // Fallback: search for any div containing an email in the top right user menu
+    const titleUser = document.querySelector('.gb_ef[title], .gb_de[title]');
+    if (titleUser) {
+      const match = titleUser.getAttribute('title').match(/[\w.-]+@[\w.-]+/);
+      if (match) return match[0];
+    }
+    return '';
+  }
+
+  /**
+   * Core: inject tracking toggle into a compose window.
+   */
+  function injectTrackingToggle(composeEl) {
+    if (processedComposers.has(composeEl)) return;
+
+    const toolbar = findToolbar(composeEl);
+    if (!toolbar) return;
+
+    const composerId = window.MailTrackrUUID.generate();
+    processedComposers.add(composeEl);
+
+    const toggleContainer = window.MailTrackrUI.createTrackingToggle(composerId);
+    toolbar.appendChild(toggleContainer);
+
+    const sendButton = findSendButton(composeEl);
+    if (sendButton) {
+      interceptSendButton(sendButton, composeEl, toggleContainer);
+    } else {
+      const obs = new MutationObserver(() => {
+        const btn = findSendButton(composeEl);
+        if (btn) {
+          obs.disconnect();
+          interceptSendButton(btn, composeEl, toggleContainer);
+        }
+      });
+      obs.observe(composeEl, { childList: true, subtree: true });
+    }
   }
 
   function interceptSendButton(sendButton, composeEl, toggleContainer) {
