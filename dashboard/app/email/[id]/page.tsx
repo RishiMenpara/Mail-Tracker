@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { use } from 'react';
 import { getEmailDetail, getOpenEvents, type EmailDetail, type OpenEvent } from '@/lib/api';
 
 function formatDate(dateStr: string | null): string {
@@ -38,8 +37,8 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function EmailDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function EmailDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
   const [detail, setDetail] = useState<EmailDetail | null>(null);
   const [events, setEvents] = useState<OpenEvent[]>([]);
