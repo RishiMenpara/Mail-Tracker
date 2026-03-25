@@ -96,7 +96,17 @@
   }
 
   function getSenderEmail() {
-    const accountEl = document.querySelector('[aria-label*="Google Account:"]') ||
+    // 1. Check for SignOutOptions link (most reliable across Workspace & personal)
+    const signOutLink = document.querySelector('a[href^="https://accounts.google.com/SignOutOptions"]');
+    if (signOutLink) {
+      const label = signOutLink.getAttribute('aria-label') || signOutLink.getAttribute('title') || '';
+      const match = label.match(/[\w.-]+@[\w.-]+/);
+      if (match) return match[0];
+    }
+
+    // 2. Check traditional aria-labels (Account vs Workspace)
+    const accountEl = document.querySelector('[aria-label*="Google Account"]') ||
+      document.querySelector('[aria-label*="Google Workspace"]') ||
       document.querySelector('[data-email]') ||
       document.querySelector('.gb_d.gb_Fa.gb_A');
       
@@ -105,15 +115,22 @@
         (accountEl.getAttribute('aria-label') || '').match(/[\w.-]+@[\w.-]+/)?.[0];
       if (email) return email;
     }
+
+    // 3. Fallbacks
     const metaEmail = document.querySelector('meta[name="email"]');
     if (metaEmail) return metaEmail.content;
     
-    // Fallback: search for any div containing an email in the top right user menu
+    // Search for any div/anchor containing an email in its title (common in Gmail UI)
     const titleUser = document.querySelector('.gb_ef[title], .gb_de[title]');
     if (titleUser) {
       const match = titleUser.getAttribute('title').match(/[\w.-]+@[\w.-]+/);
       if (match) return match[0];
     }
+    
+    // Extreme fallback: look at the document title if it contains <email> - Gmail
+    const titleMatch = document.title.match(/[\w.-]+@[\w.-]+/);
+    if (titleMatch) return titleMatch[0];
+    
     return '';
   }
 
