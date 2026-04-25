@@ -1,9 +1,3 @@
-databases:
-  - name: mailtrackr-db
-    plan: free
-    databaseName: mailtrackr
-    user: mailtrackr
-
 services:
   - type: web
     name: mailtrackr-api
@@ -16,8 +10,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: mailtrackr-db
-          property: connectionString
+        sync: false   # Set this manually in the Render dashboard → Environment tab
+                      # Use your Supabase "Session" pooler connection string (port 5432)
       - key: CORS_ORIGIN
         value: "*"

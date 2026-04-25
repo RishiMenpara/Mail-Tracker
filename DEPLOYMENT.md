@@ -15,17 +15,23 @@
 2. Connect your GitHub repository
 3. Select the `backend` folder as the **Root Directory**
 
-### 1b. Add PostgreSQL
+### 1b. Set Up Supabase Database
 
-1. In your Render dashboard → **New** → **PostgreSQL**
-2. Create the database and copy the **Internal Database URL** (or External if needed).
+1. Go to [supabase.com](https://supabase.com) → create a new project
+2. Navigate to **Project Settings → Database → Connection string → URI**
+3. Select **"Session" mode** (port `5432`) — best for Node.js servers
+4. Copy the connection string — it looks like:
+   ```
+   postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres
+   ```
+5. Go to **SQL Editor** and run the schema from `backend/src/database/schema.sql`
 
 ### 1c. Set Environment Variables
 
 In your Render backend service → **Environment** tab:
 
 ```
-DATABASE_URL=<paste from step 1b>
+DATABASE_URL=<paste your Supabase Session pooler URL>
 NODE_ENV=production
 CORS_ORIGIN=*
 ```
@@ -43,6 +49,7 @@ Render auto-deploys on push. Click **"Manual Deploy"** if needed.
 ### 1e. Copy Your Render URL
 
 From Render: Copy the generated URL at the top left (e.g., `https://mail-tracker-v60z.onrender.com`)
+
 
 ---
 
